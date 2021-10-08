@@ -1,0 +1,163 @@
+---
+title: "Práctica 1 y Práctica 2"
+author: "Marta Venegas Pardo"
+date: "10/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Instalo librerías necesarias
+
+```{r}
+library(ggfortify)
+```
+
+
+# Práctica 1
+
+Leemos los datos del IPC
+
+```{r}
+fichero <- read.csv("datosIPC.csv", header=T, dec=",",sep=";")
+head(fichero)
+str(fichero)
+```
+
+
+Convertimos el factor como caracter.
+
+```{r}
+fichero[,1]=as.character(fichero[,1])
+str(fichero)
+```
+
+
+## Ejercicio 2. Leer datos de paro
+
+```{r}
+paro <- read.csv("paro.csv", header=F, dec=".", sep=";")
+str(paro)
+
+paro[,1]=as.character(paro[,1])
+str(paro)
+```
+Dibuamos paro
+
+```{r}
+plot(paro$V2, type = "l")
+```
+
+
+
+# Prácrica 2
+
+Introducimos los datos del siguiente ejemplo relativo a las ventas trimestrales de una fábrica de calzado expresadas en cientos de miles de euros para los años 2002, 2003 y 2004:
+
+```{r}
+datos1 = c(150, 165, 125, 170, 155, 170, 135, 165, 160, 180, 140, 180) 
+datos1
+```
+
+A R le tenemos que decir que nuestros datos son una serie temporal haciendo uso de la función **ts** (temporal series).
+
+En su forma básica, se crea la serie temporal con el comando _**ts(data,frequency,start)**_
+
+Donde:
+
+- Data: es la serie de datos
+- Frequency: el número de estaciones
+- Start: un vector cuyas componentes indican el año y la estación de inicio, respectivamente. c(2002,1)
+
+
+
+```{r}
+serie1=ts(data=datos1,frequency=4,start=c(2002,1)) 
+serie1
+```
+
+
+```{r}
+
+autoplot(serie1, ts.colour = 'red', ts.linetype = 'dashed')
+```
+
+Con el otro paquete: 
+```{r}
+autoplot(stl(paro, s.window = 'periodic'), ts.colour = 'blue')
+```
+
+
+
+```{r}
+plot(serie1,xaxt = "n")
+#axis(1, at = c('2002T1','2002T2','2002T3','2002T4','2003T1','2003T2','2003T3','2003T4', '2004T1','2004T2','2004T3','2004T4'))
+```
+
+```{r}
+paro <- ts(paro[,2], start=2003,freq=4)
+plot(paro)
+```
+
+
+```{r}
+m <- decompose(paro)
+plot(m) # representa las componenetes de la serie
+```
+
+
+```{r}
+m$x
+```
+
+
+```{r}
+m$figure
+plot(m$figure, type="h")
+```
+
+
+```{r}
+m$trend # medias móviles
+plot(m$trend, type="l")
+```
+
+
+```{r}
+plot(m$trend , type = "l" , col="red")
+```
+
+
+
+
+## Ejemplo 1 
+```{r}
+ts(1:10, start = 1959)
+ts(1:47, frequency = 12, start = c(1959, 2))
+ts(1:10, frequency = 4, start = c(1959, 2))
+ts(matrix(rpois(36, 5), 12, 3), start=c(1961, 1), frequency=12)
+```
+
+
+```{r}
+z <- ts(matrix(rnorm(300), 100, 3), start = c(1961, 1), frequency = 12)
+plot(z)
+```
+
+
+
+
+
+```{r}
+componentes = decompose(serie1,type=c("multiplicative"))
+mmcent = componentes$trend
+mmcent
+```
+
+```{r}
+varest = componentes$figure # Índice para cada estación
+varest2
+```
+
