@@ -1,7 +1,7 @@
 ---
-title: "Práctica 1 y Práctica 2"
+title: "Series Temporales"
+subtitle: "Práctica 1 y Práctica 2"
 author: "Marta Venegas Pardo"
-date: "10/8/2021"
 output: html_document
 ---
 
@@ -9,9 +9,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Instalo librerías necesarias
 
-```{r}
+
+```{r librerias}
 library(ggfortify)
 ```
 
@@ -44,56 +44,10 @@ str(paro)
 paro[,1]=as.character(paro[,1])
 str(paro)
 ```
-Dibuamos paro
+Dibujamos paro
 
 ```{r}
 plot(paro$V2, type = "l")
-```
-
-
-
-# Prácrica 2
-
-Introducimos los datos del siguiente ejemplo relativo a las ventas trimestrales de una fábrica de calzado expresadas en cientos de miles de euros para los años 2002, 2003 y 2004:
-
-```{r}
-datos1 = c(150, 165, 125, 170, 155, 170, 135, 165, 160, 180, 140, 180) 
-datos1
-```
-
-A R le tenemos que decir que nuestros datos son una serie temporal haciendo uso de la función **ts** (temporal series).
-
-En su forma básica, se crea la serie temporal con el comando _**ts(data,frequency,start)**_
-
-Donde:
-
-- Data: es la serie de datos
-- Frequency: el número de estaciones
-- Start: un vector cuyas componentes indican el año y la estación de inicio, respectivamente. c(2002,1)
-
-
-
-```{r}
-serie1=ts(data=datos1,frequency=4,start=c(2002,1)) 
-serie1
-```
-
-
-```{r}
-
-autoplot(serie1, ts.colour = 'red', ts.linetype = 'dashed')
-```
-
-Con el otro paquete: 
-```{r}
-autoplot(stl(paro, s.window = 'periodic'), ts.colour = 'blue')
-```
-
-
-
-```{r}
-plot(serie1,xaxt = "n")
-#axis(1, at = c('2002T1','2002T2','2002T3','2002T4','2003T1','2003T2','2003T3','2003T4', '2004T1','2004T2','2004T3','2004T4'))
 ```
 
 ```{r}
@@ -133,6 +87,7 @@ plot(m$trend , type = "l" , col="red")
 
 
 ## Ejemplo 1 
+
 ```{r}
 ts(1:10, start = 1959)
 ts(1:47, frequency = 12, start = c(1959, 2))
@@ -150,14 +105,354 @@ plot(z)
 
 
 
+
+
+\newpage
+
+# Prácrica 2
+
+Introducimos los datos del siguiente ejemplo relativo a las ventas trimestrales de una fábrica de calzado expresadas en cientos de miles de euros para los años 2002, 2003 y 2004:
+
+```{r}
+datos1 = c(150, 165, 125, 170, 155, 170, 135, 165, 160, 180, 140, 180) 
+datos1
+```
+
+A R le tenemos que decir que nuestros datos son una serie temporal haciendo uso de la función **ts** (temporal series).
+
+En su forma básica, se crea la serie temporal con el comando _**ts(data,frequency,start)**_
+
+Donde:
+
+- Data: es la serie de datos
+- Frequency: el número de estaciones
+- Start: un vector cuyas componentes indican el año y la estación de inicio, respectivamente. c(2002,1)
+
+
+
+```{r}
+serie1=ts(data=datos1,frequency=4,start=c(2002,1)) 
+serie1
+```
+
+
+```{r}
+autoplot(serie1, ts.colour = 'red', ts.linetype = 'dashed')
+```
+
+Con el otro paquete: 
+```{r}
+#autoplot(stl(paro, s.window = 'periodic'), ts.colour = 'blue')
+```
+
+
+
+
+
+
+
 ```{r}
 componentes = decompose(serie1,type=c("multiplicative"))
-mmcent = componentes$trend
+mmcent = componentes$trend  # m móviles centradas
 mmcent
 ```
 
 ```{r}
-varest = componentes$figure # Índice para cada estación
+plot(componentes,xaxt = "n")
+#axis(1, at = c('2002T1','2002T2','2002T3','2002T4','2003T1','2003T2','2003T3','2003T4', '2004T1','2004T2','2004T3','2004T4'))
+```
+
+
+
+
+```{r}
+varest1 = componentes$figure # Índice para cada estación
+varest1
+```
+
+
+
+```{r}
+varest2=componentes$seasonal # Indice para cada estación repetidos para cada año 
+varest2 # Estacionalidades
+```
+
+```{r}
+serie_des=serie1/varest2 #serie desestacionalizada
+serie_des
+```
+
+Ahora tenemos que hacer la regresión de esos datos frente al tiempo. Como son 12 valores, podemos hacerlo del 1 al 12. 
+Pero como estamos en el ordenador, el accede solo a los instantes de tiempos.
+
+```{r}
+Time=time(serie_des)
+#Proporciona los tiempos en los que ha sido medida la serie 
+Time
+```
+
+
+```{r}
+rTendT=lm(serie_des~Time) #recta de regresión de la tendencia sobre el tiempo
+rTendT
+```
+
+```{r}
+summary(rTendT)
+```
+
+
+
+```{r}
+coef=as.vector(rTendT$coefficients) #extraigo los coeficientes
+coef
+```
+
+
+```{r}
+a=coef[1]
+b=coef[2]
+a
+b
+```
+
+Dibujamos la serie con la recta de regresión de la tendencia.
+
+```{r}
+plot(serie1, type="l" , ylim=c(min(serie1),max(serie1)))
+par(new=TRUE)
+plot(a+b*Time, 
+     type="l",
+     lty=2,
+     col=2,
+     ylab="",
+     ylim=c(min(serie1),max(serie1)) )
+par(new=TRUE)
+plot(serie_des, type="l" , ylim=c(min(serie1),max(serie1)),col=3, ylab="")
+```
+$R^2$ es una medida del desajuste de lo verde (datos desestacionalizados) y lo rojo (recta de regresión de la tendencia)
+
+
+Para un modelo aditivo, los únicos cambios serían:
+
+- Al hacer los datos desestacionalizados no se dividirían, sino que se restarían
+
+- En las predicciones no se multiplican por los IVE, sino que se sumarían
+
+
+## Cálculo de predicciones
+
+```{r}
+frec=1 # estación 1
+t=2005
+(tsecular=a+b*t) #calculo la tendencia secular
+(prediccion=tsecular*varest1[frec]) #predicción (modelo multiplicativo)
+```
+
+Esta es la predicción final
+
+
+
+
+Predicciones como lo hacemos en clase:
+
+
+```{r}
+(Time = 1:12)
+rTendT=lm(serie_des~Time) #recta de regresión
+rTendT
+```
+
+
+```{r}
+(srTendT = summary(rTendT))
+```
+
+
+```{r}
+(Rcuadrado = srTendT$r.squared)
+```
+Las predicciones serán buenas.
+
+```{r}
+coef=as.vector(rTendT$coefficients) #se extraen los coeficientes coef
+```
+
+
+```{r}
+a=coef[1]
+b=coef[2]
+a
+b
+```
+
+
+```{r}
+(varest1bien = varest1[c(1,2,3,4)])
+frec=c(1:4)
+t=13:16
+```
+
+
+```{r}
+(tsecular=a+b*t) #cálculo la tendencia secular 
+(prediccion=tsecular*varest1bien[frec]) #predicción
+```
+
+
+
+## Ejemplo para un modelo aditivo
+
+
+```{r}
+datos2 = c(113.66, 108.88, 55.09,103.22, 110.45, 63.45,
+      111.78, 103.38, 51.35,109.82, 76.95, 45.91)
+datos2
+```
+
+
+```{r}
+serie2=ts(data=datos2,frequency=3,start=c(2012,1))
+serie2
+```
+
+
+```{r}
+plot(serie2,type="l",ylim=c(min(serie2),max(serie2)),xlim=c(2012,2017))
+```
+Pico bajando todos los años, parece que hay tendencia.
+
+
+
+```{r}
+componentes2=decompose(serie2,type=c("additive"))
+```
+
+
+```{r}
+mmcent2=componentes2$trend
+mmcent2
+```
+
+
+```{r}
+varest1=componentes2$figure # Índice para cada estación
+varest1
+```
+
+Podemos comprobar que suman 0, porque estamos en el modelo aditivo.
+
+```{r}
+sum(varest1)
+```
+
+
+```{r}
+plot(varest1, type = "h")
+```
+
+Tenemos los trimestres. Esto muestra el comportamiento de los datos frente a la tendencia:
+
+- Estación 1: el dato suele ser superior a lo que la tendencia podría decir en  21.3 ud
+
+- Estación 2: El dato suele ser superior a lo que la tendencia indica para esta estación en 12.45 ud
+
+- Trim 3: el dato suele ser 33 ud menor de lo que se puede esperar de la tendencia
+
+
+```{r}
+varest2=componentes2$seasonal # Índice para cada estación repetidos para cada año
 varest2
 ```
+
+
+```{r}
+# MODELO ADITIVO: Se resta la componente estacional
+serie_des2=serie2-varest2 #serie desestacionalizada
+serie_des2
+```
+
+Vamos a dibujar la serie desestacionalizada y con estacionalidad.
+
+
+```{r}
+plot(serie2, type="l",ylim=c(min(serie2),max(serie2)), xlim=c(2012,2017))
+par(new=TRUE)
+plot(serie_des2,type="l",ylim=c(min(serie2),max(serie2)), xlim=c(2012,2017))
+```
+Vemos que el ajuste es peor que el modelo multiplicativo.
+
+
+```{r}
+Time=time(serie_des2) #Proporciona los tiempos en los que ha sido medida la serie
+Time
+```
+
+
+```{r}
+rTendT=lm(serie_des2~Time) #recta de regresión
+rTendT
+```
+
+
+```{r}
+coef=as.vector(rTendT$coefficients) #Se extraen los coeficientes
+coef
+```
+
+
+```{r}
+a=coef[1]
+b=coef[2]
+a
+
+b
+```
+
+
+```{r}
+plot(serie2,type="l",ylim=c(min(serie2),max(serie2)),xlim=c(2012,2017))
+par(new=TRUE) #comando para representar una curva en un gráfico ya existente 
+lines(a+b*Time,type="l",lty=2,col=2,ylab="" , xlab=" ")
+
+```
+
+
+```{r}
+Time
+```
+
+
+```{r}
+frec=1
+t=2016
+(tsecular=a+b*t) #calculo la tendencia secular
+```
+
+
+```{r}
+# MODELO ADITIVO: Se suma la variación estacional
+
+(prediccion=tsecular+varest1[frec]) #predicción (modelo multiplicativo)
+```
+
+
+```{r}
+(prediccion=tsecular+varest1[frec])
+
+
+total=c(datos2,prediccion)
+total_ts=ts(data=total,frequency=3,start=c(2012,1))
+plot(total_ts,type="l",col=2)
+lines(serie2,col=5)
+```
+
+Lo celeste es la línea original.
+
+
+
+
+
+Podemos hacer el ejercicio 8 del tema 1. Tenemos la solución en la EV, ejemplo hecho de la práctica 2 _ejemplo_extra_practicas2.R_. He grabado la explicación y la subo a la EV
+
 

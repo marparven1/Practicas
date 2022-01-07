@@ -1,0 +1,573 @@
+---
+title: "Practica4"
+author: "Marta Venegas Pardo"
+date: "11/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Práctica 4
+
+```{r}
+s = diff(1:10, lag=2, dif=1)
+diff(1:10, 2)
+diffinv(s,lag=2,dif=1, xi = c(1,2))
+
+
+x=(1:10)^2
+x
+diff(x, lag=1, dif=1)
+diff(x, lag=1, dif=2)
+```
+
+
+- Si diff es = 1, pierdo tantos valores como el lag
+
+
+# Ejercicio 2.1
+
+
+
+
+
+
+## Ejercicio 2
+
+Simular 100 valores de un proceso autorregresivo de orden 1 de parámetro 0.5.
+
+```{r}
+set.seed(12345)
+n=100
+ej1<- arima.sim(n=n,list(ar=0.5))
+plot(ej1)
+acf(ej1)
+```
+
+
+
+## Ejercicio 2.1
+
+
+2. Simular 100 valores de un proceso autorregresivo de orden 1 de parámetro 0.5.
+
+```{r}
+# ARIMA(1,0,0)
+set.seed(12345)
+# d=1, hay que poner order
+n=100
+a<- arima.sim(n=n,
+                list(ar=(0.5) 
+                ,order=c(1,0,0)))
+plot(a)
+```
+
+3. Simular 100 valores de un proceso de media móvil de orden 1 de parámetro 0.6.
+
+```{r}
+# ARIMA(0,0,1)
+set.seed(12345)
+# d=1, hay que poner order
+n=100
+a<- arima.sim(n=n,
+                list(ma=-0.6
+                ,order=c(0,0,1)))
+plot(a)
+```
+
+4. Simular 85 valores de un proceso ARMA(2,2) y de parámetros (0.75,-0.34) en la parte AR y (-0.3, 0.35) en la parte MA.
+```{r}
+# ARIMA(2,0,2)
+set.seed(12345)
+# d=1, hay que poner order
+n=85
+a<- arima.sim(n=n,
+                list(ar=c(0.75,-0.34),ma=c(0.3,-0.35) 
+                ,order=c(2,0,2)))
+plot(a)
+```
+
+
+6. En todos los casos, guardar los datos en un objeto de serie temporal, y realizar la gráfica correspondiente.
+
+
+## Ejercicio 2.2
+
+Ejercicio 2.2 Generar un proceso ARIMA no estacionario. Representarlo gr ́aficamente. Convertirlo en un proceso estacionario con una transformaci ́on adecuada.
+
+
+
+```{r}
+# ARIMA(2,2,2)
+set.seed(12345)
+# d=1, hay que poner order
+n=100
+a<- arima.sim(n=n,
+                list(ar=c(0.75,-0.34),ma=c(0.3,-0.35) 
+                ,order=c(2,2,2)))
+plot(a)
+```
+
+No es un muelle, hay que diferenciar
+
+
+```{r}
+difej2 <- diff(a, lag=1) # por defecto lo hace una vez nada mas
+plot(difej2)
+```
+Tenemos que volver a diferenciar
+
+```{r}
+dif2ej2 <- diff(difej2, lag=1) # por defecto lo hace una vez nada mas
+plot(dif2ej2)
+```
+
+
+Ya es un muelle.
+
+## Ejercicio 2.3
+
+Ejercicio 2.3 Generar 100 observaciones de un modelo ARIMA(2,1,0), con parámetros $\phi_1 = 0.8$ y $\phi_2 = 0.15$. Para los valores de ruido blanco, usar una varianza de 0.16. Representarla. Diferenciar la serie anterior y volver a representarla.(para hacer después de ver el Tema 4)
+
+```{r}
+ y = arima.sim(100, model=list(order=c(2,1,0),ar=c(0.8,0.15)),sd=0.4)
+ plot(y)
+ y = diff(y)
+ plot(y)
+```
+
+
+
+
+
+## Ejercicio 5 
+
+
+Simular 150 valores de un proceso ARIMA(1,1,1) de paráametros 0.75 en la parte AR y -0.65 en la parte MA.(para hacer después de ver el Tema 4)
+
+```{r}
+set.seed(12345)
+# d=1, hay que poner order
+n=150
+ej2<- arima.sim(n=n,
+                list(ar=(0.75),
+                     ma=0.65 # hay que cambiar el signo
+                ,order=c(1,1,1)))
+plot(ej2)
+```
+
+
+
+
+
+Claramente es un proceso integrado, no es el muelle, por lo que tenemos que diferenciar.
+
+Si presentaramos la FAC tendría un decrecimiento lineal seguro pero aún no lo hemos visto.
+
+```{r}
+difej2 <- diff(ej2, lag=1) # por defecto lo hace una vez nada mas
+plot(difej2)
+```
+
+
+
+
+```{r}
+#acf(difej2, lag.max = 1, type = c("correlation"),plot = TRUE #,na.action = na.fail #la dibuja aunque tenga valores #perdidos
+#    )
+```
+
+Ya si es el muelle. Tendríamos que ver la Función de autocorrelación a parte de la gráfica, es necesario.
+
+
+# Ejemplo FAC
+
+```{r}
+set.seed(1234)
+sim.ar = arima.sim(list(ar=c(0.4,0.4)),n=1000)
+sim.ma = arima.sim(list(ma=c(0.6,-0.4)),n=1000)
+par(mfrow=c(2,1))
+acf(sim.ar,main="ACF de un proceso AR(2)")
+acf(sim.ma,main="ACF de un proceso MA(2)")
+```
+
+El primero no es un MA, podría ser un ARMA o un AR
+
+Las gráficas:
+
+- AR(p): La FAC Parcial decrece exponencialmente
+- MA(q): Porque la FAC es nula del q+1 en adelante
+Tengo que completar esto bien, me pueden poner una gráfica y decir que modelo es.
+
+
+La función pacf
+
+```{r}
+pacf(sim.ar,main="PACF de un proceso AR(2)")
+pacf(sim.ma,main="PACF de un proceso MA(2)")
+      #  ?presidents
+presidents # tiene  valores perdidos
+# acf(presidents)  #da mensaje de error
+acf(presidents, na.action = na.pass)
+pacf(presidents, na.action = na.pass)
+```
+
+- ACF decrece exponencialmente
+- La parcial es nula de un momento en adelante, no sabríamos decir si es un AR(1) o AR(2), pero al estar dentro de la banda (son nulos, se trata de un IC)
+
+
+# FACE
+
+
+```{r}
+library(TSA)
+??arma11.s 
+
+#100 datos ARMA(1,1) con parámetro theta= -0.3
+
+data(arma11.s) #cargamos este conjuto de acf(arma11.s)
+pacf(arma11.s)
+```
+
+
+- La parcial: un AR(1). Ese es mi modelo candidato
+
+- FAC que desciende de manera leal, tengo que DIFERENCIAR  y luego representar otra vez
+
+Podríamos ajustarle un ARMA¿?¿?¿
+Vamos a calcularle la FACE
+
+```{r}
+eacf(arma11.s) #FACE
+```
+
+
+Tengo que irme a la esquinita en la col del 1 y filas del 1 y 2. Intentar ARMA(1,1) y ARMA(2,1)
+
+- COL: AR
+- FILAS: MA
+
+Tengo 3 candidatos (los que me sugiera la gráfica y según la FACE)
+
+- AR(1)
+- ARMA(1,1)
+- ARMA(2,1)
+
+
+
+```{r}
+set.seed(1234)
+miModelo=arima.sim(n=100,list(ar =c(0.8,-0.1),order=c(2,0,0)))
+acf(miModelo,main="FAS Mi modelo AR(2)") # FAS
+pacf(miModelo) # FAP
+eacf(miModelo) # FACE
+```
+
+
+
+```{r}
+# ej2
+difej2 <- diff(ej2, lag=1) # por defecto lo hace una vez nada mas
+plot(difej2)
+```
+
+Parece estacionaria, vamos a representarle la FAC
+
+```{r}
+acf(difej2)
+```
+
+
+Ahora la otra FAC
+
+```{r}
+acf(ej2)
+```
+
+
+
+LA diferenciada decrece exponencialmente. Con una diferencia, el d = 1. Ahora voy a determinar p y q. Para ello, trabajo con la serie diferenciada y procedo como antes.
+
+
+
+```{r}
+acf(difej2)  # no se anula pronto (3 en adelante), por lo que no es un MA
+pacf(difej2)
+eacf(difej2) #FACE
+```
+
+- AR(), no diria que es un AR, AR(4) es un orden muy grande. 
+- ARMA(1,1)
+
+Conocidos los órdenes, ahora la función ARIMA me estimará los parámetros
+
+La funcion ARIMA conocico las ordenes estima los parametros
+Cuando tenemos mas de un candidato -> lo ajusto u veo si pasa la diagnosis. Si todos lo pasan , me quedo con el de menor AIC.
+
+```{r}
+(fit10=arima(arma11.s,order=c(1,0,0)))
+confint(fit10)
+```
+
+El IC PARA PHI no contiene al 0 0.7284 (phigorro)    + -  ALGO * 1.96
+
+IC PARA LA MEDIA IC(mu,0.95): $$mu +- z*sd  = 0.3099  - +    1.96 * 0.4015$$ Contiene al 0
+IC(phi,0.95)=(0.7284+-1.96 X 0.0671) No contiene al 0
+
+$$\hat\sigma^2=1.251$$
+
+
+```{r}
+(fit11=arima(arma11.s,order=c(1,0,1)))
+confint(fit11)
+```
+
+El 0 no esta en un IC para 0.12 y 0.15. La media, como antes si que es nula.
+
+El AIC es menor que el anterior, por lo que en principio, de entre lo que pase en la diagnosis, me quedaría con este modelo
+
+
+
+
+```{r}
+(fit21=arima(arma11.s,order=c(2,0,1)))
+
+confint(arima(arma11.s,order=c(2,0,1)))
+```
+
+
+ar1 = 0 
+ar2 no 0
+ma no 0
+media = 0
+
+El AIC baja un poco.
+
+
+
+
+
+```{r}
+(fit10=arima(arma11.s,order=c(1,0,0), include.mean = FALSE))
+(fit11=arima(arma11.s,order=c(1,0,1), include.mean = FALSE))
+(fit21=arima(arma11.s,order=c(2,0,1), include.mean = FALSE))
+```
+
+No incluir parámetros en los que el 0 pertenezca al intervalo. Es meter ruido.
+
+
+```{r}
+confint(fit10)
+confint(fit11)
+confint(fit21)
+```
+
+
+En el 21 parece que va a ser descartado.
+el IC del theta tiene el 1. El proceso sería no invertible. Toda esta inferencia es valida para procesos estacionarios e invertibles
+
+Tengo que mirar que el proceso sea estacionario e invertible y que el 0 no esté en el IC, que sean significativamente no nulo.
+
+Vamos a la diagnosis.
+
+# Diagnosis
+
+Hip nula: alpha es un RB vs. H1: a no lo es
+
+
+```{r}
+tsdiag(fit10)
+```
+
+La primera gráfica: la de los resíduos estandarizados
+La segunda gráfica FAC están todos dentro de la banda menos el primero.Los resíduos son una aproximación de los alpha
+Lo que hace mal es la tercera.  Porque no estan bien calculado los p-valores. No tienen en cuenta el número de parámetros estiamdos.
+
+
+
+
+```{r}
+tsdiag(fit11)
+tsdiag(fit21)
+```
+
+Con la función sarima del paquete astsa.
+
+
+```{r}
+set.seed(12345)
+x=arima.sim(list(ar=c(0.6, -0.7), ma=c(-0.8, 0.7)), n=100)
+(aj1=arima(x,order=c(1,0,1)))
+tsdiag(aj1, gof.lag=20)
+(aj2=astsa::sarima(x,1,0,1))
+```
+
+
+
+# Función box.test
+
+
+```{r}
+x = rnorm (100)
+Box.test (x, lag = 1)
+Box.test (x, lag = 1, type = "Ljung")
+```
+
+
+
+```{r}
+# aj1 = ARMA(1,1)
+Box.test (aj1$residuals, lag = 7, type = "Ljung")
+#  X-squared = 7.8539, df = 7, p-value = 0.3457
+Box.test (aj1$residuals, lag = 7, type = "Ljung", fitdf=3) # tres parámetros, phi, theta, mu
+# X-squared = 7.8539, df = 4, p-value = 0.09708  ##----- hay una gran diferencia!!
+```
+
+
+```{r}
+Box.test (aj1$residuals, lag = 5, type = "Ljung")
+#  X-squared = 6.3938, df = 5, p-value = 0.2698
+Box.test (aj1$residuals, lag = 5, type = "Ljung", fitdf=3)
+#X-squared = 6.3938, df = 2, p-value = 0.04089   ##----- hay una gran diferencia!!
+```
+
+# Predicción en los modelos ARIMA
+
+Datos: Annual measurements of the level, in feet, of Lake Huron 1875–1972.
+
+```{r}
+?LakeHuron
+LakeHuron
+plot(LakeHuron,xlim=c(1875,1980),ylim=c(575,584))
+```
+
+
+```{r}
+# Ajuste a un ARMA(1,1)
+(fit = arima(LakeHuron,order=c(1,0,1)))
+confint(fit)
+```
+
+
+No se anula nada, todo bien
+
+```{r}
+tsdiag(fit)
+```
+
+
+
+
+
+
+
+```{r}
+plot(LakeHuron,xlim=c(1875,1980),ylim=c(575,584))
+(LH.pred = predict(fit,n.ahead=8))
+lines(LH.pred$pred,col="red")
+```
+
+
+## Ejercicio 5
+
+Generar un modelo ARMA(2,0) con 1200 observaciones y parámetros: 0.4, −0.5 (fijar set.seed(12345)).
+
+```{r}
+set.seed(12345)
+n=1200
+modelo <- arima.sim(n=n,
+          list(ar=c(0.4,-0.5), order=c(2,0,0)))
+plot(modelo)
+```
+
+
+Realizar un ajuste por distintos modelos mirando las funciones de autocorrelación muestrales. Estimar sus parámetros.
+
+```{r}
+acf(modelo)
+```
+No me sugiere nada
+
+
+```{r}
+pacf(modelo)
+```
+Parece un AR(2), los dos primeros palos y luego se anula
+
+```{r}
+eacf(modelo)
+```
+
+Me propone un ARMA(2,0)
+
+Ajuste a los modelos (me ha sugerido ARMA(2,0)=AR(2))
+
+- AR(2)
+```{r}
+ajuste1 <-arima(modelo,order=c(2,0,0))
+ajuste1
+confint(ajuste1)
+```
+
+
+Tengo que sacar la media 
+
+```{r}
+ajuste1 <-arima(modelo,order=c(2,0,0),include.mean = FALSE)
+ajuste1
+confint(ajuste1)
+```
+
+Diagnosis para este modelo
+
+```{r}
+tsdiag(ajuste1)
+```
+Parece que pasa el test. 
+
+```{r}
+astsa::sarima(modelo,2,0,0)
+```
+Parece que los resíduos siguen un proceso ruido blanco.
+
+Test Ljiun-Box
+
+```{r}
+Box.test(ajuste1$residuals,type="Ljung" # ,fitdf = 2
+         ) # he ajustado dos parámetros, phi1 y phi2, la media es 0 y la sigma no la cuento
+```
+
+Acepto $H_0$: los resíduos se distribuyen de forma independiente
+
+
+Predecir los próximos 24 instantes, y calcular intervalos de confianza para las predicciones. Realizar las gráficas correspondientes.
+
+
+
+```{r}
+plot(modelo)
+(pred = predict(ajuste1,n.ahead = 24))
+lines(pred$pred, col="red")
+```
+
+# Paquete FORECAST
+
+
+```{r}
+set.seed(12345)
+x=arima.sim(list(ar=c(0.6, -0.7), ma=c(-0.8)), n=200)
+install.packages('forecast', dependencies = TRUE)
+library(forecast)
+?auto.arima
+?forecast
+(fit = auto.arima(x, stepwise=FALSE))
+#fit = auto.arima(x, stepwise=FALSE, allowmean=TRUE) para que incluya media
+autoplot(fit)
+checkresiduals(fit)
+(prediccion=forecast(fit,h=20))
+plot(prediccion)
+```
+
