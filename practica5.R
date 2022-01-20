@@ -1,7 +1,7 @@
 # Practica 5
 # 17/12/21
 
-# 1. Lectura y representación gráfica de los datos
+# Paso 1. Lectura y representación gráfica de los datos ####
 matriculaciones_ini=read.table("matricul.dat")
 matriculaciones_ini=ts(matriculaciones_ini,  frequency = 12, start = c(1960, 1))
 plot(matriculaciones_ini, xlab="tiempo", ylab="matriculaciones")
@@ -12,7 +12,7 @@ plot(matriculaciones_ini, xlab="tiempo", ylab="matriculaciones")
 # transformación para que la varianza sea constante
 
 
-# 2. Transformación de la varianza para que sea estable en el tiempo
+# Paso 2. Transformación de la varianza para que sea estable en el tiempo ####
 library(TSA)
 ?BoxCox.ar
 bc=BoxCox.ar(y=matriculaciones_ini); bc
@@ -48,7 +48,7 @@ plot(Transfmatriculaciones_ini, xlab="tiempo", ylab="matriculaciones")
 # IMPORTANTE: PARA LAS PREDICCIONES HAY QUE DESHACER EL CAMBIO.
 # HAGO LA PREDICCIÓN Y LUEGO DESHAGO EL CAMBIO
 
-#  Paso 3. Transformaciones para que la media sea estable en el tiempo.
+# Paso 3. Transformaciones para que la media sea estable en el tiempo ####
 acf(matriculaciones, main="FAS de ln(matriculaciones)")
 # la FAS decrece muy lentamente, lo que indica que se trata de un modelo integrado. 
 # Vamos a hacer una diferencia. Volvemos a represenatar la FAS
@@ -75,7 +75,8 @@ plot(matri)
 # muelle. Estacionariedad.
 #  Vamos a comprobar la estacionariedad con el TEST de Dikey-FUller para estar seguros
 
-# 4.  Contrastar estacionariedad. Aplicar test de la raız unitaria (si rechazara tendría que buscar otra diferencia)
+# Paso 4.  Contrastar estacionariedad. Aplicar test de la raız unitaria (si rechazara tendría que #### 
+##### buscar otra diferencia)
 # H0: el pol autoregresivo tiene una raiz unitaria
 # H1: todas las raices del pol autoregresivo son estacionarias, en módulo son mayores que 1
 library(tseries)
@@ -87,8 +88,7 @@ adf.test(matri)
 
 
 
-# Paso 5. Identificar estructura ARIMA
-# 
+# Paso 5. Identificar estructura ARIMA ####
 
 acf(matri, main="FAS tras una diferencia regular y otra estacional", lag=50)
 # palo único
@@ -281,15 +281,19 @@ confint(arima(matri, order=c(1,0,1), seasonal=list(order=c(1,0,1), period=12)))
 # Vamos a ajustar los modelos completos para poder hacer predicciones
 
 
+
+
 # pones D=d=1 para no deshacer logaritmos de diferencias, que es un toston. Para
 # predecir incluyo LAS DIFERENCIAS, PARA QUE HAGA LAS PREDICCIONES CON LAS DIFERENCIAS
 # SINO, TENDRÍA QUE SER A MANO. POR DEFECTO LA MEDIA SE LA QUITA SI AJUSTO UN MODELO INTEGRADO
 
 
 
+
 AJUSTE1<- arima(matriculaciones, # LOG Yt
                 order=c(0,1,1), seasonal=list(order=c(0,1,2), period=12))
 AJUSTE1
+confint(AJUSTE1)
 #  aic = -630.26
 #  es m
 AJUSTE2 <- arima(matriculaciones, # LOG Yt

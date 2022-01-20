@@ -1,0 +1,353 @@
+---
+title: "Examen 14 enero"
+author: "Marta Venegas Pardo"
+date: "14/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(TSA)
+library(tseries)
+# install.packages('forecast',dependencies = TRUE)
+library(forecast)
+```
+
+
+# Lectura y representación de los datos
+
+```{r}
+datos <-read.table("hipcFR.txt")
+serie_ini <- ts(datos,start = c(2000,1),frequency = 12)
+serie_ini
+```
+
+
+# Apartado 1.  Justifica si se puede asumir homogeneidad en la varianza de los datos, y en caso negativo explica si se podría aplicar alguna transformación para conseguirla.
+
+
+```{r}
+plot(serie_ini)
+```
+
+Observamos que existe una tendencia creciente en los datos.
+
+Para comprobar si se puede asumir homogeneidad de los datos vamos a ver si los datos necesitan transformación
+
+
+```{r}
+#bc <- BoxCox.ar(y = serie_ini,method = c("mle") )
+```
+
+Sugiere transformación con lambda=1.9
+Como en el IC está el 1, no es necesario la transformación de los datos, es decir, confiamos en que los datos son homogéneos y podemos seguir adelante.
+
+
+# Apartado 2. Homogeneidad de la media en los datos o diferenciar
+
+Vamos a representar la FAS muestral para comprobarlo
+
+
+```{r}
+acf(serie_ini,lag.max=40,main="FAS de los datos")
+```
+
+
+
+
+La FAS decrece muy lentamente, por tanto ,se trata de un modelo integrado, vemos mucha tendencia regular en los datos. Vamos a hacer una diferencia regular a la serie.
+
+```{r}
+serie_iniDif <- diff(serie_ini,lag=1,differences = 1)
+acf(serie_iniDif,lag.max=40,main="FAS de los datos tras una diferencia regular")
+```
+
+Observamos que las autocorrelaciones de los retardos estacioanles decrecen muy lentamente, observamos una fuerte componenete estacional. Vamos a hacer una diferencia estacional
+
+```{r}
+serie_iniDif2 <- diff(serie_iniDif,lag=12,differences = 1)
+acf(serie_iniDif2,lag.max=40,main="FAS de los datos tras una diferencia regular y otra estacional")
+```
+Ahora si vemos que no hay dependencia estacional ni regular.
+
+Vamos a representar la serie para comprobar que hemos alcanzado estacionariedad
+
+```{r}
+plot(serie_iniDif2)
+```
+
+Muelle
+
+
+# Apartado 3. Contraste de estacionariedad
+
+Hago el test de DIKEY-FULLER, el test de raiz unitaria
+
+H0: existe una raiz unitaria, es decir, en módulo igual a 1
+H1: todas las raíces son estacionarias, en módulo mayores que 1
+
+
+```{r}
+adf.test(serie_iniDif2)
+```
+
+El p-valor= 0.04418, rechazo H0. No existen evidencias significativas a favor de que existan raices unitarias. Los datos son estacionarios trás una dif regular y otra estacional.
+
+
+# Apartado 4. Identificar estructura ARIMA
+
+Vamos a representar la FAS y la FAP para identificar la estructura
+
+```{r}
+acf(serie_iniDif2,lag.max = 30,main="FAS de los datos tras una diferencia regular y otra estacional")
+```
+En los retardos iniciales observamos una única autocorrelación, lo que indicaría que en la parte regular podríamos tener un MA(1)
+
+En los retardos estacionales observamos lo mismo MA(1)12 en la parte estacional
+
+Modelo propuesto ARIMA(0,1,1)x(0,1,1)12
+
+
+
+```{r}
+pacf(serie_iniDif2,main="FAP de los datos tras una diferencia regular y otra estacional",lag.max=30)
+```
+
+Un único palo tnato en la parte regular como en la estacional
+
+AR(1) en ambas partes.
+
+
+
+Modelo propuesto ARIMA(1,1,0)x(1,1,0)12
+
+
+## Estimación de parámetros y diagnóstico
+
+
+Modelo propuesto ARIMA(0,1,1)x(0,1,1)12 
+
+```{r}
+ajuste1= arima(x = serie_ini,
+               order = c(0,1,1),
+               seasonal = list(order=c(0,1,1),period=12)
+               )
+confint(ajuste1)
+```
+
+No hay coeficientes significativamente nulos
+
+```{r}
+ajuste1
+```
+
+
+AIC = -22.38
+
+Vamos a ver si este modelo pasa la diagnosis, tenemos que ver si los resíduos siguen un proceso ruido blanco.
+
+```{r}
+checkresiduals(ajuste1)
+```
+
+- p-value = 0.776: acepto la incorrelación de las innovaciones
+- además, mirando los gráficos parece que se podrían ajustar según una normal, la FAS no tiene retardos que se salgan y el plot es un muelle.
+
+
+El modelo es válido
+
+
+
+Modelo propuesto ARIMA(1,1,0)x(1,1,0)12 
+
+
+```{r}
+ajuste2= arima(x = serie_ini,
+               order = c(1,1,0),
+               seasonal = list(order=c(1,1,0),period=12)
+               )
+confint(ajuste2)
+```
+
+No hay coeficientes significativamente nulos
+
+```{r}
+ajuste2
+```
+
+
+aic = -7.43
+
+Vamos a ver si este modelo pasa la diagnosis, tenemos que ver si los resíduos siguen un proceso ruido blanco.
+
+```{r}
+checkresiduals(ajuste2)
+```
+
+- p-value = 0.3972: acepto la incorrelación de las innovaciones
+- además, mirando los gráficos parece que se podrían ajustar según una normal, la FAS no tiene retardos que se salgan y el plot es un muelle.
+
+El modelo es válido
+
+Ajuste autoarima 
+
+```{r}
+ajuste3<-auto.arima(y = serie_iniDif2)
+```
+
+
+```{r}
+auto.arima(y = serie_ini,d = 1,D = 1)
+```
+
+```{r}
+confint(ajuste3)
+```
+
+
+No hay coeficientes significativamente nulos
+
+
+
+El modelo propuesto es ARIMA(2,1,0)x(1,1,1)[12] 
+AIC=-17.2 
+
+Vamos a ver si los resíduos pasan la diagnosis
+
+
+```{r}
+checkresiduals(ajuste3)
+```
+
+
+- p-value = 0.691. La pasa.
+
+
+## Comparación de modelos
+
+Ajuste 1. ARIMA(0,1,1)x(0,1,1)12 AIC = -22.38
+Ajuste 2. ARIMA(1,1,0)x(1,1,0)12 aic = -7.43
+Ajuste 3. ARIMA(2,1,0)x(1,1,1)[12] .AIC=-17.2 
+
+El mejor ajuste es aquel con el menor AIC. Por tanto, nos quedamos con el ajuste 1
+
+Vamos a escribir el modelo seleccionado: ARIMA(0,1,1)x(0,1,1)12 
+
+
+ARIMA(0,1,1)x(0,1,1)12 
+  MA1 0.2999  SMA1-0.9993
+  
+```{r}
+ajuste1
+ajusteFinal<-ajuste1
+```
+
+
+
+\((1-L)(1-L^{12}) Y_t =(1-0.3L)(1+0.999L^{12})\alpha_t\)
+
+# Apartado 5. Predicción
+
+
+```{r}
+pred<- predict(ajusteFinal, n.ahead = 12)
+plot(serie_ini,main="IPC armonizado y predicción para 12 meses", lwd=2)
+lines(pred$pred, col="red",lwd=2)
+```
+
+
+```{r}
+inf <- pred$pred - qnorm(0.9) * pred$se  
+sup <- pred$pred + qnorm(0.9) * pred$se  
+cbind(pred$pred,inf,sup)
+```
+
+
+
+
+# Apartado 6. Modelo ADITIVO y MM
+
+Primero, desestacionalizamos la serie
+
+
+```{r}
+dec <- decompose(serie_ini,type=c("additive"))
+serie_dec <- serie_ini-dec$seasonal # serie desestacionalizada
+```
+
+Ahora ajustamos a una recta la serie desestacionalizada
+
+```{r}
+Time = time(serie_dec)
+tendencia=lm(serie_dec~Time)
+summary(tendencia)
+```
+
+Vamos a calcular las medias móviles
+
+```{r}
+cc=1:12/12
+cc=Time[108]+cc
+cc=data.frame(Time=cc)
+cc
+```
+
+Vamos a hacer una predicción de la tendencia
+
+```{r}
+serie_ini
+pred_tendencia = predict(tendencia,cc)
+season = c(dec$figure[7:12],dec$figure[1:6])
+p2 <- ts(pred_tendencia+season, freq=12, start = c(2009,1))
+p2
+```
+
+
+
+
+# Apartado 7. Predicción para modelo aditivo con suavización exponencial
+
+```{r}
+serie_suav <- HoltWinters(serie_ini)
+p3<-predict(serie_suav,n.ahead=12)
+p3
+```
+
+
+# Apartado 8. Comparar IVES
+
+
+
+
+
+```{r}
+dec$figure # IVE MMóviles
+```
+
+
+
+
+
+# Apartado 9. Comparo las predicciones
+
+
+```{r}
+p1<-pred$pred
+plot(serie_ini,main="IPC armonizado en Francia y predicciones",xlim=c(2000,2009),lwd=2)
+lines(p1,col="red")
+lines(p2,col="green")
+lines(p3,col="blue")
+```
+
+Las 3 son muy parecidas
+
+
+
+
+
+
+
+

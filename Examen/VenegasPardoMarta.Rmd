@@ -1,0 +1,392 @@
+---
+title: "Examen 14 enero"
+author: "Marta Venegas Pardo"
+date: "14/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(TSA)
+library(tseries)
+# install.packages('forecast',dependencies = TRUE)
+library(forecast)
+```
+
+
+# Lectura y representación de los datos
+
+```{r}
+datos <-read.table("Luxemburgo.txt")
+serie_ini <- ts(datos,start = c(1992,1),frequency = 12)
+serie_ini
+```
+
+
+# Apartado 1 
+
+```{r}
+plot(serie_ini)
+#ndiffs(serie)
+#nsdiffs(serie)
+```
+
+Observando la gráfica podemos ver que las oscilaciones van creciendo cada año, lo que indicaría que la varianza no es constante en el tiempo (no homogeneidad de la varianza).
+
+Sin embargo, no apreciamos tencencia al observar la gráfica, por lo que podemos considerar que los datos son constantes en media.
+
+Vamos a hacer una transformación para conseguir homogeneidad en la varianza de los datos. Buscamos en la familia de transformaciones de Box Cox
+
+```{r}
+bc=BoxCox.ar(y=serie_ini, # lambda=seq(-3,3,0.01)
+             )
+bc$mle
+bc
+```
+Nos sugiere una transformación con lambda = -2. 
+
+La transformación es: $\dfrac{x^{\lambda}-1}{\lambda}$
+
+
+
+```{r}
+lambda <- bc$mle
+# serieTransf = (serie^(lambda)-1)/lambda
+serieTransf=serie_ini^lambda
+plot(serieTransf)
+```
+
+
+Ya el gráfico parece indicar que la varianza se ha estabilizado en el tiempo.
+
+
+# apartado 2
+
+
+
+
+```{r}
+acf(serieTransf, main="FAS Datos transformados",lag.max = 50)
+```
+Observamos que la FAC decrece muy lentamente, se trata de un modelo integrado. Vemos mucha dependencia de la componente estacional. Vamos a hacer una diferencia estacional a los datos.
+
+Las autocorrelaciones de periodo s=12 decrecen muy lentamente
+
+
+```{r}
+serieTransfDiff <- diff(serieTransf,lag=12,diff=1)
+acf(serieTransfDiff, main="Fas tras una diferencia Estacional", lag.max = 50)
+```
+Hacemos una diferencia regular, parece que tambien existe una dependencia de la componente regular.
+
+
+```{r}
+serieFinal <- diff(serieTransfDiff,lag=1,diff=1)
+
+acf(serieFinal,lag.max = 50)
+```
+
+Podemos apreciar que esta FAC corresponde a un modelo estacionario y no se ven dependencias de la componente regular ni estacional.
+
+Tambien puede verse representado la serie diferenciada 
+
+
+```{r}
+plot(serieFinal)
+```
+Observamos un muelle, lo que indicaría estacionariedad en los datos.
+
+# Apartado 3
+
+Vamos a hacer el test de Dikey-Fuller para comprobar la estacionariedad de los datos. Test de raiz unitaria que contrasta las hipótesis siguientes:
+
+\[H_0: \text{El polinomio autoregresivo tiene una raiz unitaria}\]
+\[H_1: \text{Todas las raices del polinomio autoregresivo son estacionarias (en módulo mayores que 1)}\]
+
+```{r}
+library(tseries)
+adf.test(serieFinal)
+```
+
+- p-valor del contraste:  $\text{p-valor} < 0.01 < \alpha = 0.05$
+- Conclusión: rechazo la hipótesis nula a favor de la alternativa, es decir, no existen evidencias diferencias significaticas para aceptar que el polinomio autoregresivo tiene una raiz unitaria.
+
+# apartado 4 
+
+Vamos a identificar la estructura ARIMA a través de la FAC y la FAP 
+
+```{r}
+acf(serieFinal,lag.max = 50, main ="FAC tras una diferencia regular y otra estacional")
+```
+
+En los retrardos estacionales observamos una autocorrelación en el primer retardo, podríamos pensar que la parte estacional tiene una estructura MA(1)
+
+En los primeros retardos observamos una autocorrelación, lo que podría indicar que en la parte regular el modelo tenga estructura MA(1), pero debemos comprobarlo con la FAP. Tambien puede ocurrir que sea un modelo solo con parte estacional.
+
+Alrededor del retardo 4 vemos una autocorrelación que se sale de las bandas, pero no nos preocupa ya que estas bandas son un IC al 95%, y por tanto, cabe esperar que algunas se salgan.
+
+
+```{r}
+pacf(serieFinal,lag.max = 50, main ="FAP tras una diferencia regular y otra estacional")
+```
+en los retardos estacionales podemos ver dos autocorrelaciones que decrecen rápidamente, lo que avalaría aún más la hipótesis de un MA(1) en la parte estacional.
+
+En la parte regular, encontramos unaúnica autocorrelación fuera de la banda, que nos lleva a pensar que podría tratarse de un modelo AR(1), o un modelo sin componente regular.
+
+Vuelve a haber una autocorrelación fuera de las bandas debido a la aleatoriedad, se trata de un IC
+
+
+Modelos candidatos:
+
+
+- ARIMA(1,1,0)XARIMA(0,1,1)12
+- ARIMA(0,1,1)xARIMA(0,1,1)12
+- ARIMA(1,1,1)xARIMA(0,1,1)12
+- ARIMA(0,1,0)XARIMA(0,1,1)12
+
+Estos modelos son:
+
+
+- SARIMA(1,1,0)X(0,1,1)12
+- SARIMA(0,1,1)x(0,1,1)12
+- SARIMA(1,1,1)x(0,1,1)12
+- SARIMA(0,1,0)X(0,1,1)12
+
+
+## Ajuste de los modelos 
+
+SARIMA(1,1,0)X(0,1,1)12
+
+```{r}
+# SI PONGO EL 1 LOS DATOS SON LOS TRANSFORMADOSSSSSSS
+ajuste1<-arima(serieTransf # serieFinal
+               ,order=c(1,1,0), # p. regular
+      seasonal = list(order=c(0,1,1), period=12) # p. estacional
+      )
+ajuste1
+confint(ajuste1)
+```
+
+EL COEFICIENTE AR de la parte regular ES SIGNIFICATIVAMENTE NULO, LO QUITO.
+
+SARIMA(0,1,0)X(0,1,1)12
+
+```{r}
+# SI PONGO EL 1 LOS DATOS SON LOS TRANSFORMADOSSSSSSS
+ajuste1<-arima(serieTransf # serieFinal
+               ,order=c(0,1,0), # p. regular
+      seasonal = list(order=c(0,1,1), period=12) # p. estacional
+      )
+ajuste1
+confint(ajuste1)
+```
+
+AIC= -2984.81
+
+Vamos a ver si se cumple que los resíduos siguen un proceso ruido blanco.
+
+```{r}
+checkresiduals(ajuste1)
+```
+- p-valor del constaste: p-value = 0.657. Puedo aceptar la incorrelación. Los resíduos siguien un ruido blanco.
+- en la fas vemos dos palos que se salen, pero está dentro de la normalidad debido a que es in IC al 95%
+
+
+ajuste 2
+
+SARIMA(0,1,1)x(0,1,1)12
+
+```{r}
+ajuste2<-arima(serieTransf #serieFinal
+               ,order=c(0,1,1), # p. regular
+      seasonal = list(order=c(0,1,1), period=12) # p. estacional
+      )
+ajuste2
+confint(ajuste2)
+```
+No hay coeficientes significativamente nulos, sn todos no nulos.
+Valor del AIC = -2982.92
+
+Vamos a ver si se cumple que los resíduos siguen un proceso ruido blanco.
+
+
+
+
+```{r}
+checkresiduals(ajuste2)
+```
+- p-valor del constaste: p-value = 0.5929. Puedo aceptar la incorrelación. Los resíduos siguien un ruido blanco.
+
+
+
+
+
+
+```{r}
+# Box.test(serieTransf,lag=12,type = c("Box-Pierce"),fitdf =2 )
+```
+
+Misma conclusión.
+
+ajuste 3:  SARIMA(1,1,1)x(0,1,1)12
+
+
+
+
+
+```{r}
+ajuste3<-arima(serieTransf
+  # serieFinal
+  ,order=c(1,1,1), # p. regular
+      seasonal = list(order=c(0,1,1), period=12) # p. estacional
+      )
+ajuste3
+confint(ajuste3)
+```
+
+El coeficiente AR(1) es significativamente nulo, al iguial que el MA(1), ambos de la parte regular por lo que lo tengo que quitar y me queda el modelo del ajuste 1 MA(1)12
+Este modelo ya está ajustado en el ajuste 1.
+
+
+
+Ajuste de autoarima
+
+
+```{r}
+ajuste5 <- auto.arima(serieFinal,stepwise = FALSE)
+confint(ajuste5)
+ajuste5
+```
+
+
+
+No hay coeficientes significativamente nulos. Se trata de un modelo MA(1)12=ARIMA(0,1,0)x(0,1,1)
+Valor del AIC=-2982.81
+
+
+
+
+
+```{r}
+checkresiduals(ajuste5)
+```
+
+
+
+- p-valor= 0.7292. Acepto la incorrelación de los resíduos.
+
+
+## Comparación de los modelos
+
+Ajuste 1. SARIMA(0,1,0)X(0,1,1)12 AIC= -2984.81
+Ajuste 2. SARIMA(0,1,1)x(0,1,1)12 AIC = -2982.92
+Ajuste 5. MA(1)12=ARIMA(0,1,0)x(0,1,1) AIC=-2982.81
+
+
+El modelo final es aquel con menor AIC. Los tres modelos tienen un AIC muy parecido. El modelo final es:
+
+Ajuste 1. SARIMA(0,1,0)X(0,1,1)12 AIC= -2984.81
+
+
+## Modelo final 
+
+Este es mi modelo final: SARIMA(0,1,0)x(0,1,1)12
+
+```{r}
+ajusteFinal<-ajuste1
+ajusteFinal
+```
+
+\(Y_t=y_{t-1}+\alpha_{t-1}+\alpha_t+0.6291\alpha_{t-12}\) o lo que es lo mismo
+\(Y_t(1-L)(1-L^{12}) = (1+0.6291 \Theta^{12})\alpha_t \)
+
+
+# Apartado 5
+
+Predicción para 12 meses siguientes e IC para el precio de la leche
+
+```{r}
+pred= predict(ajusteFinal,n.ahead = 12)
+pred$pred
+
+preds<-sqrt(1/pred$pred)
+se<-sqrt(1/pred$se)
+
+
+inf<-preds-qnorm(0.95)*se
+sup<-preds+qnorm(0.95)*se
+
+cbind.data.frame(preds,inf,sup)
+```
+
+# Apartado 6 
+
+```{r}
+dec=decompose(serie_ini,type="additive")
+serie_dec= serie_ini-dec$seasonal # serie desestacionalizada
+```
+
+Ahora ajustamos a una recta la serie desestracionalizada
+
+
+
+```{r}
+time = time(serie_dec)
+tendencia = lm(serie_dec~time)
+summary(tendencia)
+```
+
+
+- a =  -48.04187
+- b= 0.04003
+
+
+```{r}
+cc=1:12/12
+cc=time[186]+cc
+cc=data.frame(time=cc)
+# cc # M móviles centradas
+```
+
+```{r}
+# prediccion de la tendencia 
+pred_tendencia = predict(tendencia,cc)
+# dec$figure # IVE
+season = c(dec$figure[7:12],dec$figure[1:6])
+p2 = ts(pred_tendencia+season, freq=12,start=c(2007,7))
+p2
+```
+
+
+
+
+
+# Apartado 7 
+
+```{r}
+serie_suavizado <- HoltWinters(serie_ini)
+p3 <- predict(serie_suavizado,n.ahead=12)
+p3
+```
+
+# Apartado 8
+
+
+```{r}
+# y = x^lambda -> datos = y^(1/lambda) 
+p1<-preds
+
+plot(serie_ini,xlim=c(1992,2009),lwd=2, ylim=c(27,41))
+lines(p1,col="red",lwd=2)
+lines(p2,col="blue",lwd=2)
+lines(p3,col="green",lwd=2)
+```
+
+
+Ambas son muy parecidas, sin embargo, por el método de las medias móviles las predicciones son más bajas.
+
+
+

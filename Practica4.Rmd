@@ -542,6 +542,7 @@ Box.test(ajuste1$residuals,type="Ljung" # ,fitdf = 2
 
 Acepto $H_0$: los resíduos se distribuyen de forma independiente
 
+# Predicciones
 
 Predecir los próximos 24 instantes, y calcular intervalos de confianza para las predicciones. Realizar las gráficas correspondientes.
 
@@ -553,17 +554,26 @@ plot(modelo)
 lines(pred$pred, col="red")
 ```
 
-# Paquete FORECAST
+```{r}
+c(pred$pred - 1.96* pred$se ,pred$pred + 1.96* pred$se )  # Un IC
+```
+
+
+
+## Paquete FORECAST
 
 
 ```{r}
 set.seed(12345)
 x=arima.sim(list(ar=c(0.6, -0.7), ma=c(-0.8)), n=200)
-install.packages('forecast', dependencies = TRUE)
+# install.packages('forecast', dependencies = TRUE)
 library(forecast)
 ?auto.arima
 ?forecast
 (fit = auto.arima(x, stepwise=FALSE))
+confint(fit)
+# la media tiene el 0 en el IC, por lo que la tengo que sacar
+
 #fit = auto.arima(x, stepwise=FALSE, allowmean=TRUE) para que incluya media
 autoplot(fit)
 checkresiduals(fit)
