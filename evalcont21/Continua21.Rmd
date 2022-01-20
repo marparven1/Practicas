@@ -300,7 +300,7 @@ Vamos a hacer una predicción de la tendencia
 ```{r}
 serie_ini
 pred_tendencia = predict(tendencia,cc)
-season = c(dec$figure[7:12],dec$figure[1:6])
+season = c(dec$figure)
 p2 <- ts(pred_tendencia+season, freq=12, start = c(2009,1))
 p2
 ```

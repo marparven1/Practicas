@@ -3,6 +3,8 @@
 
 # Paso 1. Lectura y representación gráfica de los datos
 library(TSA); library (tseries); library(forecast) #cargamos todas las libreras que vamos a usar
+
+
 x<-read.table("hipcFR.txt")
 serie <- ts(x,frequency = 12,start = c(2000,1))
 serie
@@ -30,7 +32,7 @@ nsdiffs(serie) # num dif estarionarias necesarias en la serie para que sea estac
 # Paso 2. Transformaciones para que la varianza sea estable en el tiempo Del gráfico de la serie, no parece
 #  que haya que aplicar alguna trasnformación
 ##
-bc=BoxCox.ar(y=serie,method = "mle"); bc
+bc=BoxCox.ar(y=serie,method = c("mle")); bc
 # Sugiere transformación con lambda=1.9
 # Como en el IC está el 1, no es necesario la transformación de los datos, es decir, 
 # confiamos en que los datos son homogéneos y podemos seguir adelante.

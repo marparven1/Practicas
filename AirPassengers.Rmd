@@ -1,0 +1,335 @@
+---
+title: "AirPassengers"
+author: "Marta Venegas Pardo"
+date: "1/20/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(TSA)
+library(tseries)
+# install.packages('forecast',dependencies = TRUE)
+library(forecast)
+```
+
+
+# Lectura y representación de los datos
+
+```{r}
+data("AirPassengers")
+serie_ini<-AirPassengers
+plot (serie_ini, ylab="Air Passengers")
+```
+
+
+# Apartado 1 
+
+```{r}
+plot(serie_ini)
+#ndiffs(serie)
+#nsdiffs(serie)
+```
+
+
+
+Observamos tendencia de los datos, ya que crecen con respecto al tiempo.
+La varianza de los datos no podemos considerarla constante en el tiempo, ya que observamos que las oscilaciones crezcan cada año. 
+Tambien vemos una gran dependencia de la estación, estacioariedad, ya que existe un patrón que se repite cada año.
+
+# Paso 2. Varianza estable en el tiempo
+
+Vamos a hacer una transformación para conseguir homogeneidad en la varianza de los datos. Buscamos en la familia de transformaciones de Box Cox
+
+```{r}
+bc=BoxCox.ar(y=serie_ini # lambda=seq(-3,3,0.01) 
+       ,method = "ols"      )
+bc$mle
+bc
+```
+Nos sugiere una transformación con lambda = 0.3. Transformación logarítmica
+
+La transformación es: $\dfrac{x^{\lambda}-1}{\lambda}$
+
+
+```{r}
+serie<- log(serie_ini)
+plot(serie)
+```
+Parece que la varianza se ha estabilizado en el tiempo.
+
+# Paso 3. Transformación para media estable en el tiempo
+
+
+Vamos a representar la FAS
+
+```{r}
+acf(serie, main="FAS Datos log(Air Pas)",lag.max = 50)
+```
+
+
+Observamos que la FAC decrece muy lentamente, se trata de un modelo integrado. Vemos mucha dependencia de la componente estacional y regular.
+
+Las autocorrelaciones de periodo s=12 decrecen muy lentamente
+
+
+```{r}
+serieDiff <- diff(serie,lag=1,diff=1)
+acf(serieDiff, main="FAS tras una diferencia Regular", lag.max = 50)
+```
+
+Hacemos una diferencia estaciona, parece que tambien existe una dependencia de esta componente.
+
+
+```{r}
+serieFinal <- diff(serieDiff,lag=12,diff=1)
+
+acf(serieFinal,lag.max = 50)
+```
+
+Podemos apreciar que esta FAC corresponde a un modelo estacionario y no se ven dependencias de la componente regular ni estacional.
+
+Tambien puede verse representado la serie diferenciada 
+
+
+```{r}
+plot(serieFinal)
+```
+
+Observamos un muelle, lo que indicaría estacionariedad en los datos.
+
+# Paso 4. Compruebo la estacionariedad
+
+Vamos a hacer el test de Dikey-Fuller para comprobar la estacionariedad de los datos. Test de raiz unitaria que contrasta las hipótesis siguientes:
+
+\[H_0: \text{El polinomio autoregresivo tiene una raiz unitaria}\]
+\[H_1: \text{Todas las raices del polinomio autoregresivo son estacionarias (en módulo mayores que 1)}\]
+
+```{r}
+adf.test(serieFinal)
+```
+
+- p-valor del contraste:  $\text{p-valor} < 0.01 < \alpha = 0.05$
+- Conclusión: rechazo la hipótesis nula a favor de la alternativa, es decir, no existen evidencias diferencias significaticas para aceptar que el polinomio autoregresivo tiene una raiz unitaria.
+
+# apartado 4 
+
+Vamos a identificar la estructura ARIMA a través de la FAC y la FAP 
+
+```{r}
+acf(serieFinal,lag.max = 50, main ="FAC tras una diferencia regular y otra estacional")
+```
+En los retrardos estacionales observamos una autocorrelación en el primer retardo, podríamos pensar que la parte estacional tiene una estructura MA(1).
+
+Además, en los retardos iniciales vemos dos autocorrelaciones, lo que indicaría un modelo MA(2) para la parte regular.
+
+
+
+
+```{r}
+pacf(serieFinal,lag.max = 50, main ="FAP tras una diferencia regular y otra estacional")
+```
+
+En los retardos estacionales podemos ver una única autocorrelación: AR(1)12
+
+En la parte regular, encontramos ude nuevo dos autocorrelaciones, lo que avalaría la hipótesis de un AR(2) en la parte estacional.
+
+
+
+Modelos candidatos:
+
+- SARIMA(0,1,1)x(0,1,1)12
+- SARIMA(1,1,0)x(1,1,0)12
+
+
+## Ajuste de los modelos 
+
+- SARIMA(0,1,1)x(0,1,1)12
+
+```{r}
+# SI PONGO EL 1 LOS DATOS SON LOS TRANSFORMADOSSSSSSS
+ajuste1<-arima( serie # log(AirPassengers) 
+               ,order=c(0,1,1), # p. regular
+      seasonal = list(order=c(0,1,1), period=12) # p. estacional
+      )
+ajuste1
+confint(ajuste1)
+```
+
+Ambos coeficientes son significativamente no nulos.
+
+aic = -485.4
+
+Vamos a ver si se cumple que los resíduos siguen un proceso ruido blanco.
+
+```{r}
+checkresiduals(ajuste1)
+```
+- p-valor del constaste: p-value = 0.233. Puedo aceptar la incorrelación. Los resíduos siguien un ruido blanco.
+- En la FAS vemos una autocorrelación que se sale, pero está dentro de la normalidad debido a que es in IC al 95%
+- La representación de los resíduos tiene forma de muelle, lo que indica que las innovaciones siguen un proceso de ruido blanco
+- Parece que la densidad podría ser una normal
+
+El modelo es válido.
+
+
+- SARIMA(1,1,0)x(1,1,0)12
+
+```{r}
+# SI PONGO EL 1 LOS DATOS SON LOS TRANSFORMADOSSSSSSS
+ajuste2<-arima( serie # log(AirPassengers) 
+               ,order=c(1,1,0), # p. regular
+      seasonal = list(order=c(1,1,0), period=12) # p. estacional
+      )
+ajuste2
+confint(ajuste2)
+```
+
+Ambos coeficientes son significativamente no nulos.
+
+aic = -476.82
+
+Vamos a ver si se cumple que los resíduos siguen un proceso ruido blanco.
+
+```{r}
+checkresiduals(ajuste2)
+```
+
+p-value = 0.01822 < 0.05. Rechazo H0. No podemos aceptar este modelo. Los resíduos no siguen un proceso de ruido blanco.
+
+
+
+
+Ajuste de autoarima
+
+
+```{r}
+ajuste2 <- auto.arima(serie,d = 1,D = 1,stepwise = FALSE)
+confint(ajuste2)
+ajuste2
+```
+
+
+
+No hay coeficientes significativamente nulos. Se trata de un modelo: SARIMA(0,1,1)x(0,1,1)12, que es el que ya teníamos ajustado.
+
+Valor del AIC=-483.4 
+
+
+
+## Comparación de los modelos
+
+Ajuste 1. SARIMA(0,1,1)X(0,1,1)12 aic =-485.4
+Ajuste 2. SARIMA(0,1,1)x(0,1,1)12 AIC=-483.4 
+
+
+
+El modelo final es aquel con menor AIC. Los tres modelos tienen un AIC muy parecido. El modelo final es:
+
+Ajuste 1. SARIMA(0,1,1)X(0,1,1)12 aic = -485.4
+
+
+## Modelo final 
+
+Este es mi modelo final: SARIMA(0,1,1)x(0,1,1)12
+
+```{r}
+ajusteFinal<-ajuste1
+ajusteFinal
+```
+
+\(Y_t(1-L)(1-L^{12}) = (1+0.4018L)(1+0.5569 L^{12})\alpha_t \)
+
+
+# Apartado 5
+
+Predicción para 12 meses siguientes e IC para el precio de la leche
+
+```{r}
+pred= predict(ajusteFinal,n.ahead = 12)
+pred$pred
+
+preds<- exp(pred$pred)
+# se <- exp(pred$se)
+# 
+# inf<-preds-qnorm(0.95)*se
+# sup<-preds+qnorm(0.95)*se
+# 
+# cbind.data.frame(preds,inf,sup)
+```
+
+
+```{r}
+inf2<-exp(pred$pred-qnorm(0.95)*pred$se)
+sup2<-exp(pred$pred+qnorm(0.95)*pred$se)
+cbind.data.frame(preds,inf2,sup2)
+```
+
+# Apartado 6 
+
+```{r}
+dec=decompose(serie_ini,type="additive")
+serie_dec= serie_ini-dec$seasonal # serie desestacionalizada
+```
+
+Ahora ajustamos a una recta la serie desestracionalizada
+
+
+
+```{r}
+time = time(serie_dec)
+tendencia = lm(serie_dec~time)
+summary(tendencia)
+```
+
+
+
+
+```{r}
+cc=1:12/12
+cc=time[144]+cc
+cc=data.frame(time=cc)
+# cc # M móviles centradas
+```
+
+```{r}
+# prediccion de la tendencia 
+pred_tendencia = predict(tendencia,cc)
+# dec$figure # IVE
+season = dec$figure
+p2 = ts(pred_tendencia+season, freq=12,start=c(1961,1))
+p2
+```
+
+
+
+
+
+# Apartado 7 
+
+```{r}
+serie_suavizado <- HoltWinters(serie_ini)
+p3 <- predict(serie_suavizado,n.ahead=12)
+p3
+```
+
+# Apartado 8
+
+
+```{r}
+# y = x^lambda -> datos = y^(1/lambda) 
+
+p1<-exp(pred$pred)
+plot(AirPassengers,lwd=2,xlim=c(1949, 1962))
+lines(p1,col="red",lwd=2)
+lines(p2,col="blue",lwd=2)
+lines(p3,col="green",lwd=2)
+```
+
+
+Ambas son muy parecidas.
+
+

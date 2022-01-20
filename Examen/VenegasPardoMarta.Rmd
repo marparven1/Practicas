@@ -331,8 +331,6 @@ serie_dec= serie_ini-dec$seasonal # serie desestacionalizada
 
 Ahora ajustamos a una recta la serie desestracionalizada
 
-
-
 ```{r}
 time = time(serie_dec)
 tendencia = lm(serie_dec~time)
@@ -352,7 +350,8 @@ cc=data.frame(time=cc)
 ```
 
 ```{r}
-# prediccion de la tendencia 
+# prediccion 
+# de la tendencia 
 pred_tendencia = predict(tendencia,cc)
 # dec$figure # IVE
 season = c(dec$figure[7:12],dec$figure[1:6])
